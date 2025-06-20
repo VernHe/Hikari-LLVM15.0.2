@@ -1,3 +1,4 @@
+# .github/workflows/build-hikari.yml
 name: Build Hikari-LLVM15 Toolchain
 
 on:
@@ -15,16 +16,19 @@ jobs:
       - name: Install dependencies
         run: |
           brew update
-          brew install cmake ninja swig python3 llvm@15
+          brew install cmake ninja python3 llvm@15
 
       - name: Configure and build
-        working-directory: ${{ github.workspace }}/Hikari-LLVM15.0.2
         run: |
+          # 进入 Hikari-LLVM15.0.2 目录（repo 根目录下即有此文件夹）
+          cd "${{ github.workspace }}/Hikari-LLVM15.0.2"
+          # 干净重建 build
           rm -rf build
           mkdir build && cd build
+          # 配置 CMake，只编 clang+lld，外部 TableGen，禁 Python
           cmake -G Ninja ../llvm \
             -DCMAKE_BUILD_TYPE=Release \
-            -DCMAKE_INSTALL_PREFIX=${{ runner.temp }}/Hikari-LLVM15.0.2.xctoolchain \
+            -DCMAKE_INSTALL_PREFIX="${{ runner.temp }}/Hikari-LLVM15.0.2.xctoolchain" \
             -DLLVM_CREATE_XCODE_TOOLCHAIN=ON \
             -DCMAKE_OSX_SYSROOT="$(xcrun --sdk iphoneos --show-sdk-path)" \
             -DCMAKE_OSX_ARCHITECTURES=arm64 \
@@ -35,12 +39,13 @@ jobs:
             -DLLVM_BUILD_CLANG_TABLEGEN=OFF \
             -DLLVM_EXTERNAL_TABLEGEN=/opt/homebrew/opt/llvm@15/bin/llvm-tblgen \
             -DLLDB_DISABLE_PYTHON=ON
-          ninja -j$(sysctl -n hw.ncpu)
+          # 编译并安装成 toolchain
+          ninja -j2
           ninja install-xcode-toolchain
 
       - name: Package toolchain
         run: |
-          cd ${{ runner.temp }}
+          cd "${{ runner.temp }}"
           zip -r Hikari-LLVM15.0.2.xctoolchain.zip Hikari-LLVM15.0.2.xctoolchain
 
       - name: Upload artifact
