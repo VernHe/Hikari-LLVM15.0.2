@@ -16,16 +16,18 @@ jobs:
       - name: Install dependencies
         run: |
           brew update
-          brew install cmake ninja python3 llvm@15
+          brew install cmake ninja python3 llvm@15 swig
 
       - name: Configure and build
         run: |
-          # 进入 Hikari-LLVM15.0.2 目录（repo 根目录下即有此文件夹）
-          cd "${{ github.workspace }}/Hikari-LLVM15.0.2"
-          # 干净重建 build
+          # 直接进入仓库根
+          cd "${{ github.workspace }}"
+
+          # 干净重建 build 目录
           rm -rf build
           mkdir build && cd build
-          # 配置 CMake，只编 clang+lld，外部 TableGen，禁 Python
+
+          # 配置：只编 clang+lld，跳过内部 TableGen/Python、用外部 llvm-tblgen
           cmake -G Ninja ../llvm \
             -DCMAKE_BUILD_TYPE=Release \
             -DCMAKE_INSTALL_PREFIX="${{ runner.temp }}/Hikari-LLVM15.0.2.xctoolchain" \
@@ -39,7 +41,8 @@ jobs:
             -DLLVM_BUILD_CLANG_TABLEGEN=OFF \
             -DLLVM_EXTERNAL_TABLEGEN=/opt/homebrew/opt/llvm@15/bin/llvm-tblgen \
             -DLLDB_DISABLE_PYTHON=ON
-          # 编译并安装成 toolchain
+
+          # 并行编译 & 安装 Toolchain
           ninja -j2
           ninja install-xcode-toolchain
 
