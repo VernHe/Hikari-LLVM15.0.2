@@ -44,4 +44,7 @@ jobs:
           zip -r Hikari-LLVM15.0.2.xctoolchain.zip Hikari-LLVM15.0.2.xctoolchain
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
+        with:
+          name: Hikari-LLVM15.0.2.xctoolchain
+          path: ${{ runner.temp }}/Hikari-LLVM15.0.2.xctoolchain.zip
