@@ -1,0 +1,40 @@
+name: Build Hikari-LLVM15 Toolchain
+
+on: workflow_dispatch
+
+jobs:
+  build:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          submodules: false
+      - name: Install dependencies
+        run: brew install cmake ninja llvm@15
+      - name: Configure
+        run: |
+          rm -rf build
+          mkdir build && cd build
+          cmake -G Ninja ../Hikari-LLVM15.0.2/llvm \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_INSTALL_PREFIX=${{ runner.temp }}/Hikari-LLVM15.0.2.xctoolchain \
+            -DLLVM_CREATE_XCODE_TOOLCHAIN=ON \
+            -DCMAKE_OSX_SYSROOT=$(xcrun --sdk iphoneos --show-sdk-path) \
+            -DCMAKE_OSX_ARCHITECTURES=arm64 \
+            -DLLVM_ENABLE_PROJECTS="clang;lld" \
+            -DLLVM_ENABLE_ZSTD=OFF \
+            -DCMAKE_SYSTEM_IGNORE_PATH="/opt/homebrew" \
+            -DLLVM_BUILD_LLVM_TABLEGEN=OFF \
+            -DLLVM_BUILD_CLANG_TABLEGEN=OFF \
+            -DLLVM_EXTERNAL_TABLEGEN=/opt/homebrew/opt/llvm@15/bin/llvm-tblgen
+      - name: Compile & Package
+        run: |
+          cd build
+          ninja -j$(sysctl -n hw.ncpu)
+          ninja install-xcode-toolchain
+          cd /Library/Developer/Toolchains
+          zip -r ${{ runner.temp }}/Hikari-LLVM15.0.2.xctoolchain.zip Hikari-LLVM15.0.2.xctoolchain
+      - uses: actions/upload-artifact@v3
+        with:
+          name: Himalayan-Toolchain
+          path: ${{ runner.temp }}/Hikari-LLVM15.0.2.xctoolchain.zip
